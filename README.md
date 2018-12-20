@@ -44,8 +44,14 @@ curl -u : --negotiate https://myservice.osc.mydomain.org -v
 
 ## Cleanup
 
-1. remove app 
+1. remove app
 ```
 oc delete all --selector template=flask-krb5-auth-sample
+```
+
+## Rebuild
+
+```
+oc start-build flask-krb5-app
 ```
 
