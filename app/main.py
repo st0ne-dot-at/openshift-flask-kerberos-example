@@ -24,7 +24,7 @@ def root():
     <li>SERVICE_PRINCIPAL: {}</li>
     </ul>
     <a href="/secured">continue to krb5 secured site</a>
-    """.format(socket.gethostname, SERVICE_PRINCIPAL)
+    """.format(socket.gethostname(), SERVICE_PRINCIPAL)
 
 @app.route('/secured')
 @requires_authentication
@@ -36,7 +36,7 @@ def secured(user):
     <li>USER: {}</li>
     </ul>
     <a href="/secured">back to unsecured site</a>
-    """.format(socket.gethostname, SERVICE_PRINCIPAL, user)
+    """.format(socket.gethostname(), SERVICE_PRINCIPAL, user)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT)
