@@ -1,0 +1,76 @@
+---
+- name: add service principal
+  ldap_attr:
+    dn: "{{ use_mapped_user }}"
+    name: servicePrincipalName
+    values: "HTTP/{{ use_service_principal }}"
+    bind_dn: "{{ use_bind_dn }}"
+    bind_pw: "{{ use_bind_pw }}"
+    server_uri: "ldap://{{ use_ldap_server }}"
+
+- name: kinit 
+  shell: "echo '{{ use_mapped_user_password }}' | kinit {{ use_mapped_user_user_principal_name }}@{{ use_realm }}"
+  register: kinit_result
+
+- name: check kinit returncode
+  assert:
+    that: "kinit_result.rc == 0"
+    success_msg: 'kinit ok'
+    fail_msg: 'kinit {{ use_mapped_user_user_principal_name }}@{{ use_realm }} failed'
+    msg: 'kinit {{ use_mapped_user_user_principal_name }}@{{ use_realm }} failed'
+
+- name: delete temp_file
+  file:
+    state: absent
+    path: "{{ use_keytab_temp_file }}"
+
+- name: determine kvno
+  shell: "set -o pipefail && kvno HTTP/{{ use_service_principal }}@{{ use_realm }} | awk '{print $4}'"
+  register: kvno_result
+  until: kvno_result.rc == 0
+  retries: 10
+  delay: 10
+
+- name: validate kvno
+  assert:
+    that:
+      - "kvno_result.rc == 0"
+      - "(kvno_result.stdout|int) > 0"
+    msg: "failed to validate kvno ({{ kvno_result.stdout|int }})"
+
+- name: kvno fact
+  set_fact:
+    kvno: "{{ kvno_result.stdout|int }}"
+
+- name: debug kvno
+  debug:
+    msg: "using kvno {{ kvno }}"
+
+- name: generate keytab
+  shell:
+    cmd: |
+      #add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e aes128-cts-hmac-sha1-96
+      #{{ use_mapped_user_password }}
+      #add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e aes256-cts-hmac-sha1-96
+      #{{ use_mapped_user_password }}
+      #add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e arcfour-hmac-md5-exp
+      #{{ use_mapped_user_password }}
+      #add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e des3-cbc-sha1
+      #{{ use_mapped_user_password }}
+      #add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e des-cbc-md5
+      #{{ use_mapped_user_password }}
+      ktutil <<END
+      add_entry -password -p HTTP/{{ use_service_principal }}@{{ use_realm }} -k {{ kvno }} -e rc4-hmac
+      {{use_mapped_user_password}}
+      write_kt {{ use_keytab_temp_file }}
+      exit
+      END
+  register: kutil_result
+
+- name: check kutil returncode
+  assert:
+    that: "kutil_result.rc == 0"
+    success_msg: 'kutil ok'
+    fail_msg: 'failed to generate keytab'
+    msg: 'failed to generate keytab'
+

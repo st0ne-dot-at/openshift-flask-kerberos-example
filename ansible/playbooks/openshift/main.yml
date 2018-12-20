@@ -1,0 +1,15 @@
+---
+- import_playbook: ../init/openshift_facts.yml
+  when: "openshift_init_done is not defined"
+
+- hosts: localhost
+  connection: local
+  tasks:
+  - import_role:
+      name: ../../roles/openshift
+    vars:
+      use_flask_app_hostname: "{{ flask_app_hostname }}"
+      use_openshift_api_token: "{{ openshift_api_token }}"
+      use_openshift_api_host: "{{ openshift_api_host }}"
+      use_openshift_api_port: "{{ openshift_api_port }}"
+      krb5_keytab: "{{ keytab_temp_file }}"

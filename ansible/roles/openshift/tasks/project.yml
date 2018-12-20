@@ -1,0 +1,251 @@
+- name: Create Project
+  oc:
+    state: present
+    inline:
+      kind: ProjectRequest
+      metadata:
+        name: "{{ flask_app_namespace }}"
+        labels:
+          template: "{{ object_label }}"
+      displayName: Flask Krb5 Project
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create output ImageStream
+  oc:
+    state: present
+    inline:
+      kind: ImageStream
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: "{{ app_name }}"
+        namespace: "{{ flask_app_namespace }}"
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create source ImageStream
+  oc:
+    state: present
+    inline:
+      kind: ImageStream
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: centos
+        namespace: "{{ flask_app_namespace }}"
+      spec:
+        lookupPolicy:
+          local: false
+        tags:
+        - annotations:
+            openshift.io/imported-from: centos:7
+          from:
+            kind: DockerImage
+            name: centos:7
+          importPolicy: {}
+          name: "7"
+          referencePolicy:
+            type: Source
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create BuildConfig
+  oc:
+    state: present
+    inline:
+      kind: BuildConfig
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: "{{ app_name }}"
+        namespace: "{{ flask_app_namespace }}"
+      spec:
+        failedBuildsHistoryLimit: 5
+        nodeSelector: null
+        output:
+          to:
+            kind: ImageStreamTag
+            name: "{{ app_name }}:latest"
+        postCommit: {}
+        resources: {}
+        runPolicy: Serial
+        source:
+          git:
+            uri: https://github.com/st0ne-dot-at/flask-openshift-example.git
+          type: Git
+        strategy:
+          dockerStrategy:
+            from:
+              kind: ImageStreamTag
+              name: centos:7
+          type: Docker
+        successfulBuildsHistoryLimit: 5
+        triggers:
+        - github:
+            secret: "{{ gen_password }}"
+          type: GitHub
+        - generic:
+            secret: "{{ gen_password }}"
+          type: Generic
+        - imageChange:
+          type: ImageChange
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Slurp krb5 keytab file
+  slurp:
+    src: "{{ krb5_keytab }}"
+  register: krb5_keytab_content
+
+- name: Create keytab secret
+  oc:
+    state: present
+    inline:
+      kind: Secret
+      data:
+        krb5.keytab: "{{ krb5_keytab_content.content }}"
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: krb5.keytab
+        namespace: "{{ flask_app_namespace }}"
+      type: Opaque
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create deployment config
+  oc:
+    state: present
+    inline:
+      kind: DeploymentConfig
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: "{{ app_name }}"
+        namespace: "{{ flask_app_namespace }}"
+      spec:
+        replicas: 1
+        revisionHistoryLimit: 5
+        selector:
+          app: "{{ app_name }}"
+          deploymentconfig: "{{ app_name }}"
+        strategy:
+          activeDeadlineSeconds: 21600
+          resources: {}
+          rollingParams:
+            intervalSeconds: 1
+            maxSurge: 25%
+            maxUnavailable: 25%
+            timeoutSeconds: 600
+            updatePeriodSeconds: 1
+          type: Rolling
+        template:
+          metadata:
+            creationTimestamp: null
+            labels:
+              app: "{{ app_name }}"
+              deploymentconfig: "{{ app_name }}"
+          spec:
+            containers:
+            - env:
+              - name: KRB5_KTNAME
+                value: /deployment/keytab/krb5.keytab
+              - name: SERVICE_PRINCIPAL
+                value: "{{ use_flask_app_hostname }}"
+              - name: KRB5_TRACE
+                value: /var/tmp/krb5.trace
+              imagePullPolicy: Always
+              name: "{{ app_name }}"
+              ports:
+              - containerPort: 8080
+                protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+              - mountPath: /deployment/keytab
+                name: volume-keytab
+                readOnly: true
+            dnsPolicy: ClusterFirst
+            restartPolicy: Always
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - name: volume-keytab
+              secret:
+                defaultMode: 420
+                secretName: krb5.keytab
+        test: false
+        triggers:
+        - type: ConfigChange
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+            - "{{ app_name }}"
+            from:
+              kind: ImageStreamTag
+              name: "{{ app_name }}:latest"
+              namespace: "{{ flask_app_namespace }}"
+          type: ImageChange
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create service
+  oc:
+    state: present
+    inline:
+      kind: Service
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: "{{ app_name }}"
+        namespace: "{{ flask_app_namespace }}"
+      spec:
+        ports:
+        - name: 8080-tcp
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+        selector:
+          app: "{{ app_name }}"
+          deploymentconfig: "{{ app_name }}"
+        sessionAffinity: None
+        type: ClusterIP
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+- name: Create route
+  oc:
+    state: present
+    inline:
+      kind: Route
+      metadata:
+        labels:
+          template: "{{ object_label }}"
+        name: "{{ app_name }}"
+        namespace: "{{ flask_app_namespace }}"
+      spec:
+        host: "{{ use_flask_app_hostname }}"
+        port:
+          targetPort: 8080-tcp
+        tls:
+          termination: edge
+        to:
+          kind: Service
+          name: "{{ app_name }}"
+          weight: 100
+        wildcardPolicy: None
+    token: "{{ use_openshift_api_token }}"
+    host: "{{ use_openshift_api_host }}"
+    port: "{{ use_openshift_api_port }}"
+
+

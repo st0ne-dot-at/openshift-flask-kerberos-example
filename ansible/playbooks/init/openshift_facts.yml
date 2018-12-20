@@ -1,0 +1,71 @@
+---
+- import_playbook: basic_facts.yml
+  when: "basic_init_done is not defined"
+
+- hosts: localhost
+  connection: local
+  tasks:
+
+  - name: stat oc command
+    shell: which oc
+    register: oc_cmd_stat
+    failed_when: False
+
+  - name: fail if oc executable is not present and no url and token is defined
+    assert:
+      that:
+        - "oc_cmd_stat.rc == 0"
+      success_msg: 'found oc executable'
+      fail_msg: 'no oc executable found and no url/token is defined'
+      msg: 'no oc executable found and no url/token is defined'
+    when: "openshift_api_host is not defined or openshift_api_port is not defined or openshift_api_token is not defined"
+
+  - name: get openshift api host from oc command
+    shell: oc config view --minify -o jsonpath='{.clusters[*].cluster.server}' | awk -F'[/:]' '{print $4}'
+    register: oc_api_host
+    when: "oc_cmd_stat.rc == 0 and openshift_api_host is not defined"
+
+  - name: set openshift_api_host
+    set_fact:
+      openshift_api_host: "{{ oc_api_host.stdout }}"
+    when: openshift_api_host is not defined
+
+  - name: get openshift api port from oc command
+    shell: oc config view --minify -o jsonpath='{.clusters[*].cluster.server}' | awk -F'[/:]' '{print $5}'
+    register: oc_api_port
+    when: "oc_cmd_stat.rc == 0 and openshift_api_port is not defined"
+
+  - name: set openshift_api_port
+    set_fact:
+      openshift_api_port: "{{ oc_api_port.stdout }}"
+    when: openshift_api_port is not defined
+
+  - name: get openshift api token from oc command
+    shell: oc whoami -t
+    register: oc_api_token
+    when: "oc_cmd_stat.rc == 0 and openshift_api_token is not defined"
+
+  - name: set openshift_api_token
+    set_fact:
+      openshift_api_token: "{{ oc_api_token.stdout }}"
+    when: openshift_api_token is not defined
+
+  - name: debug openshift_api_*
+    debug:
+      var: openshift_api_host, openshift_api_port, openshift_api_token
+
+  - name: test opneshift connection
+    oc:
+      state: present
+      name: default
+      namespace: default
+      kind: Namespace
+      token: "{{ openshift_api_token }}"
+      host: "{{ openshift_api_host }}"
+      port: "{{ openshift_api_port }}"
+    changed_when: False
+    register: os_login_status
+
+  - name: openshift_init_done
+    set_fact:
+      openshift_init_done: True

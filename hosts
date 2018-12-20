@@ -1,0 +1,57 @@
+[lh]
+localhost
+[lh:vars]
+ansible_connection=local
+# domain ... defaults to host_var ansible_domain
+#domain=mydomain.org
+
+# openshift api host
+# If not overruled, the api url is automatically gathered from the following command:
+# oc config view --minify -o jsonpath='{.clusters[*].cluster.server}' | awk -F'[/:]' '{print $4}'
+#
+#openshift_api_host=openshfit-cluster.mydomain.org
+#
+# openshift api port
+# If not overruled, the api url is automatically gathered from the following command:
+# oc config view --minify -o jsonpath='{.clusters[*].cluster.server}' | awk -F'[/:]' '{print $5}'
+#
+#openshift_api_port=8443
+
+# openshift api token
+# If not overruled, the api url is automatically gathered from the following command:
+# oc whoami -t
+#
+#openshift_api_token=testadsfadfasdfadkfadfaf
+
+# ldap_server
+# If not overruled, the ldap server is gathered from following dns srv record:
+# _ldap._tcp.{{domain}}
+#
+#ldap_server=woswasi.mydomain.org
+
+# ldap admin user
+bind_dn="CN=user,OU=Users,OU=mydomain,DC=DC=org"
+
+# ldap admin password
+bind_pw="my_ldap_secret"
+base_dn="OU=Users,OU=mydomain,DC=DC=org"
+
+keytab_temp_file=/tmp/temp_keytab.keytab
+
+# external hostname for the app (openhift route)
+# This variable is used for the external route to the fask app and the 
+# servicePrincipalName (= HTTP/{{ lask_app_hostname }} )
+flask_app_hostname=myservice.osc.mydomain.org
+
+#flask_app_namespace=flask-krb5-auth
+
+# dn of the user, the servicePrincipal will be mapped to
+mapped_user"CN=mymappeduser,OU=ServiceAccounts,OU=Users,DC=mydomain,DC=org"
+
+# userPrincipalName of the user, the servicePrincipal will be mapped to
+mapped_user_user_principal_name=mymappeduser
+
+# password of the user, the servicePrincipal will be mapped to
+mapped_user_password=mymappeduserpasword
+
+

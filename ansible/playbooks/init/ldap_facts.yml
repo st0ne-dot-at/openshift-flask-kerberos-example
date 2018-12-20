@@ -1,0 +1,49 @@
+---
+- import_playbook: basic_facts.yml
+  when: "basic_init_done is not defined"
+
+- hosts: localhost
+  connection: local
+  tasks:
+
+  - name: debug
+    debug:
+      var: domain
+
+  - name: ldap search string
+    set_fact:
+      ldap_serarch_string: "{{ '_ldap._tcp.%s./SRV'|format(domain) }}"
+    when: "ldap_server is not defined"
+
+  - name: get ldap_server
+    set_fact:
+      ldap_server_res: "{{ lookup('dig', ldap_serarch_string, 'flat=0', wantlist=True) }}"
+    failed_when: False
+    when: "ldap_server is not defined"
+
+  - name: check ldap_server
+    assert:
+      that:
+        - "ldap_server_res[0]['target'] is defined"
+      msg: "no ldap server found"
+    when: "ldap_server_res is defined"
+
+  - name: set ldap_server
+    set_fact:
+      ldap_server: "{{ ldap_server_res[0]['target'] }}"
+    when: "ldap_server_res is defined"
+
+  - name: stat ldapwhoami command
+    shell: which ldapwhoami
+    register: ldapwhoami_cmd_stat
+    failed_when: False
+
+  - name: ldap connection test
+    #shell: "ldapsearch -H ldap://{{ldap_server}} -D '{{bind_dn}}' -w '{{bind_pw}}' -s sub -b'{{base_dn}}' '(&(ObjectClass=user)(sAMAccountName=st*))' sAMAccountName"
+    shell: "ldapwhoami -H ldap://{{ldap_server}} -D '{{bind_dn}}' -w '{{bind_pw}}'"
+    changed_when: False
+    when: "ldapwhoami_cmd_stat.rc == 0"
+
+  - name: ldap_init_done
+    set_fact:
+      ldap_init_done: True

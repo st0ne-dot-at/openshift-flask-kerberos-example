@@ -1,0 +1,6 @@
+*.py[cod]
+python_ansible*
+*.swp
+*.retry
+hosts.local
+.git

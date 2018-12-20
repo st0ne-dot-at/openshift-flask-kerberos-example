@@ -1,0 +1,4 @@
+flask_app_namespace: flask-krb5-auth
+object_label: flask-krb5-auth-sample
+app_name: flask-krb5-app
+gen_password: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"

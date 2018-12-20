@@ -1,0 +1,20 @@
+---
+- import_playbook: ../init/ldap_facts.yml
+  when: "ldap_init_done is not defined"
+
+- hosts: localhost
+  connection: local
+  tasks:
+  - import_role:
+      name: ../../roles/service_principal
+    vars:
+      use_ldap_server: "{{ ldap_server }}"
+      use_bind_dn: "{{ bind_dn }}"
+      use_bind_pw: "{{ bind_pw }}"
+      use_service_principal: "{{ flask_app_hostname }}"
+      use_mapped_user: "{{ mapped_user }}"
+      use_mapped_user_user_principal_name: "{{ mapped_user_user_principal_name }}"
+      use_mapped_user_password: "{{ mapped_user_password }}"
+      use_keytab_temp_file: "{{ keytab_temp_file }}"
+      use_domain: "{{ domain }}"
+      use_realm: "{{ realm }}"

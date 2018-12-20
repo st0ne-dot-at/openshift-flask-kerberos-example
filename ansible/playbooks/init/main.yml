@@ -1,0 +1,6 @@
+---
+- import_playbook: basic_facts.yml
+
+- import_playbook: openshift_facts.yml
+
+- import_playbook: ldap_facts.yml

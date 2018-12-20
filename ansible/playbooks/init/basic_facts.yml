@@ -1,0 +1,22 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+
+  - name: set domain
+    set_fact:
+      domain: "{{ hostvars[inventory_hostname]['ansible_domain'] }}"
+    when: domain is not defined
+
+  - name: set realm
+    set_fact:
+      realm: "{{ domain|upper }}"
+
+  - name: debug domain, realm
+    debug:
+      var: domain, realm
+
+  - name: basic_init_done
+    set_fact:
+      basic_init_done: True
+

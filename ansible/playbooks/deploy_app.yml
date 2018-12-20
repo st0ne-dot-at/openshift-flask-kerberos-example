@@ -1,0 +1,6 @@
+---
+- import_playbook: init/main.yml
+
+- import_playbook: service_principal/main.yml
+
+- import_playbook: openshift/main.yml
