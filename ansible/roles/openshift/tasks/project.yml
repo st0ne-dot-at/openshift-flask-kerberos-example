@@ -159,7 +159,7 @@
               - name: SERVICE_PRINCIPAL
                 value: "{{ use_flask_app_hostname }}"
               - name: KRB5_TRACE
-                value: /var/tmp/krb5.trace
+                value: /dev/stderr
               imagePullPolicy: Always
               name: "{{ app_name }}"
               ports:
