@@ -35,7 +35,7 @@ def secured(user):
     <li>SERVICE_PRINCIPAL: {}</li>
     <li>USER: {}</li>
     </ul>
-    <a href="/secured">back to unsecured site</a>
+    <a href="/">back to unsecured site</a>
     """.format(socket.gethostname(), SERVICE_PRINCIPAL, user)
 
 if __name__ == '__main__':
