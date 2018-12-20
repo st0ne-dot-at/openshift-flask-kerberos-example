@@ -75,7 +75,7 @@
         runPolicy: Serial
         source:
           git:
-            uri: https://github.com/st0ne-dot-at/flask-openshift-example.git
+            uri: https://github.com/st0ne-dot-at/openshift-flask-kerberos-example.git
           type: Git
         strategy:
           dockerStrategy:
