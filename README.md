@@ -3,6 +3,8 @@
 ## Quick Start
 1. clone repository
 
+    git clone https://github.com/st0ne-dot-at/openshift-flask-kerberos-example.git
+
 2. create  and configure python_ansbile27 virtualenv
 
     virtualenv -p /usr/bin/python2 python_ansible27
