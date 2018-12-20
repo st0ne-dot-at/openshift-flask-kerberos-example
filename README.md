@@ -1,4 +1,10 @@
 # OpenShift 3 Flask Kerberos Example
+This repo provides an kerberized flask app and ansible playbooks to deploy the app on an OpenShift v3 cluster.
+
+## Prerequisites
+1. OpenShift v3 Cluster
+2. ActiveDirectory admin user (configured in [hosts](hosts) ... bind_dn)
+3. ActiveDirectory service user. (configured in [hosts](hosts) ... mapped_user). The servicePrincipal get mapped on that user via the ansibe ldap_attr module.
 
 ## Quick Start
 1. clone repository
